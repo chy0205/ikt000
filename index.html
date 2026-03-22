@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- 響應式設計：確保在不同設備上正確縮放，提升手機使用體驗 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- 頁面標題：由 JavaScript 動態設定 -->
+  <title id="tab-title">載入中...</title>
+  <!-- 引入 Tailwind CSS CDN，用於快速建立現代化和響應式樣式 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* 引入 Inter 字體作為主要字體 */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f3f4f6; /* 淺灰色背景 */
+      /* 基礎字體特意放大到 30px，增強現場/投影時的可讀性 */
+      font-size: 30px; 
+      line-height: 0.9; /* 調整行距，讓文字更緊湊 */
+    }
+    .container {
+      /* 限制容器最大寬度，置中顯示，並增加圓角和陰影 */
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 24px;
+      background-color: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    /* 標題樣式 */
+    h1 {
+      text-align: center;
+      color: #1f2937;
+      font-size: 2.5rem; /* 放大主標題 */
+    }
+    h2 {
+      text-align: center;
+      color: #1f2937;
+      font-size: 2rem; /* 放大次標題 */
+    }
+    /* 功能按鈕群組 */
+    .button-group {
+      display: flex;
+      gap: 12px; /* 按鈕間隔 */
+      margin-bottom: 24px;
+    }
+    .button-group button {
+      flex: 1; /* 讓按鈕平均分佈空間 */
+      padding: 14px;
+      background-color: #d1d5db;
+      /* 樣式定義 */
+      font-size: 20px; 
+      transition: all 0.2s ease-in-out;
+    }
+    /* 按鈕啟用或懸停狀態的樣式 */
+    .button-group button.active,
+    .button-group button:hover {
+      background-color: #4CAF50; /* 綠色 */
+      color: white;
+    }
+    /* 區塊顯示/隱藏控制 */
+    .section {
+      display: none;
+    }
+    .section.active {
+      display: block;
+    }
+    .hidden {
+      display: none;
+    }
+    /* 表單標籤樣式 */
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #374151;
+      font-size: 24px; /* 放大標籤字體 */
+    }
+    /* 表單輸入框、日期選擇和文本區樣式 */
+    select, input[type="date"], textarea {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 20px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 24px; /* 放大表單內容字體 */
+    }
+    /* 提交按鈕樣式 */
+    .submit-button {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      background-color: #4CAF50;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 20px; 
+      font-weight: 600;
+      transition: background-color 0.2s;
+    }
+    .submit-button:hover {
+      background-color: #45a049;
+    }
+    /* 訊息顯示區塊樣式 - 用於查詢結果等非彈窗訊息 */
+    .message {
+      margin-top: 20px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 18px; 
+    }
+    /* 班員列表樣式優化 */
+    #member-form {
+      line-height: 0.9; /* 減少班員列表行距 */
+    }
+    .member-item {
+      margin-bottom: 5px;
+    }
+    .member-item label {
+      display: flex; /* 使用 flex 佈局，使 radio button 和文字對齊 */
+      align-items: center;
+      word-break: break-all; /* 確保長名字可以換行 */
+    }
+    .member-item input {
+      margin-right: 10px; 
+      flex-shrink: 0; /* 防止 radio button 縮小 */
+    }
+    /* 查詢結果項目樣式 */
+    .query-result-item {
+      padding: 12px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .query-result-item p {
+      margin: 0 0 8px 0;
+      font-size: 18px; 
+    }
+    .query-result-item strong {
+      color: #1f2937;
+    }
+    /* 讀取動畫 (Loader) 樣式 */
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 4px solid #4CAF50;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* --- 新增：自定義彈窗樣式 --- */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.6); /* 黑色半透明背景 */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000; /* 確保彈浮在最上層 */
+    }
+    .modal-content {
+      background-color: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 90%;
+      width: 400px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    }
+    .modal-content .submit-button {
+      /* 讓彈窗內的按鈕不要佔滿 100% 寬度，更美觀 */
+      width: auto; 
+      padding: 10px 30px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 id="page-title">載入中...</h1>
+    
+    <!-- 選擇區域區塊 -->
+    <div id="area-select-container">
+      <label for="area">區域：</label>
+      <select id="area">
+        <option value="" disabled selected>讀取中...</option>
+      </select>
+    </div>
+    
+    <!-- 班員名單顯示區塊 -->
+    <div id="members-container">
+      <h2>班員名單</h2>
+      <div id="member-list">
+        <!-- 班員列表將由 JavaScript 動態插入 -->
+      </div>
+    </div>
+    
+    <!-- 功能選擇按鈕：預設隱藏，選擇班員後顯示 -->
+    <div id="choice-section" class="hidden">
+      <p class="text-center text-gray-700 font-bold mb-2">請選擇填寫＆查詢：</p>
+      <div class="button-group">
+        <button id="fill-form-btn">填寫</button>
+        <button id="query-btn">查詢</button>
+      </div>
+    </div>
+
+    <!-- 填寫愿單區塊：預設隱藏 -->
+    <div id="fill-form-section" class="section">
+      <!-- 填寫結果訊息顯示區 (非彈窗時的錯誤訊息仍在此顯示) -->
+      <div id="fill-message" class="message"></div>
+      <button type="submit" class="submit-button mt-4" onclick="submitForm()">提交愿單</button>
+    </div>
+
+    <!-- 查詢愿單區塊：預設隱藏 -->
+    <div id="query-section" class="section">
+      <!-- 新增日期範圍篩選輸入框 -->
+      <label for="startDate">起始日期：</label>
+      <input type="date" id="startDate" name="startDate">
+
+      <label for="endDate">結束日期：</label>
+      <input type="date" id="endDate" name="endDate">
+      
+      <button type="submit" class="submit-button" onclick="queryRecords()">查詢</button>
+      <!-- 查詢結果訊息顯示區 -->
+      <div id="query-message" class="message"></div>
+      <div id="query-results" class="mt-4">
+        <!-- 查詢結果或提示文字 -->
+        <p class="text-gray-500 text-center hidden" id="query-placeholder"></p>
+        <!-- 查詢讀取動畫 -->
+        <div id="query-loader" class="hidden">
+          <div class="loader"></div>
+          <p class="text-center text-gray-500 mt-2">查詢中...</p>
+        </div>
+        <!-- 實際查詢結果列表 -->
+        <div id="result-list"></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- --- 新增：自定義彈窗結構 --- -->
+  <div id="custom-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <h3 id="modal-title" class="text-2xl font-bold mb-4 text-green-600"></h3>
+      <p id="modal-message" class="mb-6 text-gray-700"></p>
+      <button id="modal-close-btn" class="submit-button">確定</button>
+    </div>
+  </div>
+  <!-- --- 結束：自定義彈窗結構 --- -->
+
+  <script>
+    // --- 重要：請將此處替換為您的 GAS Web App 網址 ---
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby0H8g_8d4qGvRkRkRkRkRkRkRkRkRkRkRkRkRkRkRkRkR/exec';
+
+    // --- 元素引用 ---
+    const areaSelect = document.getElementById('area'); 
+    const membersContainer = document.getElementById('member-list'); 
+    const choiceSection = document.getElementById('choice-section');
+    const fillFormBtn = document.getElementById('fill-form-btn');
+    const queryBtn = document.getElementById('query-btn');
+    const fillFormSection = document.getElementById('fill-form-section');
+    const querySection = document.getElementById('query-section');
+    
+    // 填寫表單相關元素
+    const fillMessageDiv = document.getElementById('fill-message'); 
+    
+    // 查詢表單相關元素
+    const queryMessageDiv = document.getElementById('query-message');
+    const queryResultsDiv = document.getElementById('query-results');
+    const resultListDiv = document.getElementById('result-list');
+    const queryLoader = document.getElementById('query-loader');
+    const queryPlaceholder = document.getElementById('query-placeholder');
+
+    // --- 彈窗相關元素 ---
+    const customModal = document.getElementById('custom-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalMessage = document.getElementById('modal-message');
+    const modalCloseBtn = document.getElementById('modal-close-btn');
+
+    // --- 初始化頁面 ---
+    window.onload = function() {
+      initPage();
+    };
+
+    /**
+     * 向 GAS 發送 API 請求的輔助函式
+     */
+    async function apiRequest(action, params = {}) {
+      const queryString = new URLSearchParams({ action, ...params }).toString();
+      const url = `${SCRIPT_URL}?${queryString}`;
+      
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          // mode: 'cors' // GAS Web App 支持 CORS GET 請求
+        });
+        if (!response.ok) throw new Error('網路回應不正確');
+        return await response.json();
+      } catch (error) {
+        console.error('API 請求失敗:', error);
+        throw error;
+      }
+    }
+
+    /**
+     * 初始化頁面內容（標題、區域列表）
+     */
+    async function initPage() {
+      try {
+        const data = await apiRequest('getInitialData');
+        document.getElementById('page-title').textContent = data.pageTitle;
+        document.getElementById('tab-title').textContent = data.pageTitle;
+        
+        // 更新區域選單
+        let html = '<option value="" disabled selected>請選擇區域</option>';
+        data.areas.forEach(area => {
+          html += `<option value="${area}">${area}</option>`;
+        });
+        areaSelect.innerHTML = html;
+      } catch (error) {
+        alert('無法載入初始資料，請檢查網路連線或腳本網址。');
+      }
+    }
+
+    // 輔助函式：控制功能區塊的顯示/隱藏
+    function showSection(section) {
+      document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+      section.classList.add('active');
+    }
+
+    // 點擊「填寫」按鈕，顯示填寫區塊
+    fillFormBtn.addEventListener('click', () => {
+      showSection(fillFormSection);
+    });
+
+    // 點擊「查詢」按鈕，顯示查詢區塊
+    queryBtn.addEventListener('click', () => {
+      showSection(querySection);
+    });
+
+    // --- 彈窗控制邏輯 ---
+    // 顯示自定義彈窗
+    function showCustomModal(title, message, isSuccess = true) {
+      modalTitle.textContent = title;
+      modalMessage.textContent = message || '';
+      // 根據是否成功設定標題顏色
+      modalTitle.classList.toggle('text-green-600', isSuccess);
+      modalTitle.classList.toggle('text-red-600', !isSuccess);
+      
+      customModal.classList.remove('hidden');
+    }
+
+    // 隱藏自定義彈窗
+    function hideCustomModal() {
+      customModal.classList.add('hidden');
+    }
+
+    // 綁定關閉按鈕事件
+    modalCloseBtn.addEventListener('click', hideCustomModal);
+
+
+    // --- 區域選擇與班員載入邏輯 ---
+    areaSelect.addEventListener('change', async function() {
+      const selectedArea = this.value;
+      // 清除所有訊息和現有列表
+      showMessage(fillMessageDiv, '');
+      showMessage(queryMessageDiv, '');
+      membersContainer.innerHTML = '';
+      choiceSection.classList.add('hidden');
+      showSection(document.createElement('div')); // 隱藏所有功能區塊
+      
+      if (selectedArea) {
+        // 顯示載入訊息
+        membersContainer.innerHTML = '<p class="text-gray-500 text-center mt-2">讀取班員中.....請耐心等待</p>';
+        try {
+          const members = await apiRequest('getMembers', { area: selectedArea });
+          updateMemberList(members);
+        } catch (error) {
+          membersContainer.innerHTML = '<p class="text-red-500 text-center mt-2">讀取失敗，請重新選擇</p>';
+        }
+      }
+    });
+
+    // 處理後端返回的班員名單
+    function updateMemberList(members) {
+      let html = '';
+      if (members && members.length > 0) {
+        html += '<form id="member-form">';
+        // 動態生成 Radio Button 列表
+        members.forEach(member => {
+          html += `<div class="member-item">
+                    <label>
+                      <input type="radio" name="member" value="${member}" class="form-radio text-green-500" onchange="handleMemberSelect()">
+                      <span class="ml-2 text-gray-700">${member}</span>
+                    </label>
+                  </div>`;
+        });
+        html += '</form>';
+      } else {
+        html += '<p class="text-gray-500 text-center">該區域沒有班員。</p>';
+        choiceSection.classList.add('hidden');
+        showSection(document.createElement('div'));
+      }
+      membersContainer.innerHTML = html;
+    }
+    
+    // 處理班員選擇事件：顯示功能按鈕，並清空查詢結果
+    function handleMemberSelect() {
+      choiceSection.classList.remove('hidden');
+      showSection(document.createElement('div')); // 隱藏功能區塊，等待用戶選擇「填寫」或「查詢」
+      queryPlaceholder.classList.remove('hidden');
+      resultListDiv.innerHTML = '';
+      // 清除填寫區塊的 inline 訊息
+      showMessage(fillMessageDiv, '');
+    }
+
+    // --- 提交愿單邏輯 ---
+    async function submitForm() {
+      const selectedArea = areaSelect.value;
+      const selectedMember = document.querySelector('input[name="member"]:checked');
+      
+      const formTextareas = document.querySelectorAll('#fill-form-section textarea');
+      const submitDateInput = document.getElementById('submitDate');
+      
+      // 基本資料驗證
+      if (!selectedArea || !selectedMember || !submitDateInput.value) {
+        showMessage(fillMessageDiv, '🚨 請選擇區域、班員並填寫日期。', 'red');
+        return;
+      }
+      
+      // 收集表單數據
+      const formData = {
+        area: selectedArea,
+        member: selectedMember.value,
+        submitDate: submitDateInput.value
+      };
+      // 將四個愿單文本區的內容加入 formData
+      formTextareas.forEach(textarea => {
+        formData[textarea.name] = textarea.value.trim();
+      });
+
+      // 顯示提交中的訊息
+      showMessage(fillMessageDiv, '🔄 提交中...', 'orange');
+      
+      try {
+        const result = await apiRequest('submit', formData);
+        submissionResult(result);
+      } catch (error) {
+        showMessage(fillMessageDiv, '❌ 提交時發生網路錯誤', 'red');
+      }
+    }
+
+    // 處理後端返回的提交結果
+    function submissionResult(result) {
+      if (result === '提交成功！') {
+        // --- 成功時：使用彈窗顯示訊息 ---
+        showCustomModal('✅ 提交成功！');
+        
+        // 提交成功後清除介面狀態
+        // 重置文字區域
+        document.querySelectorAll('#fill-form-section textarea').forEach(tx => tx.value = '');
+        document.getElementById('submitDate').value = '';
+        
+        membersContainer.innerHTML = ''; // 清空班員列表
+        areaSelect.selectedIndex = 0; // 重置區域選擇
+        choiceSection.classList.add('hidden');
+        showSection(document.createElement('div'));
+        
+        // 清除 inline 訊息，因為已經用彈窗顯示
+        showMessage(fillMessageDiv, ''); 
+        
+      } else {
+        // 失敗時：仍使用 inline 訊息顯示錯誤
+        showMessage(fillMessageDiv, `❌ 提交失敗: ${result}`, 'red');
+      }
+    }
+
+    // 輔助函式：顯示 inline 訊息 (主要用於錯誤或查詢結果)
+    function showMessage(element, message, color) {
+      element.textContent = message;
+      element.style.color = color;
+    }
+
+    // --- 查詢功能邏輯 ---
+    async function queryRecords() {
+      const selectedArea = areaSelect.value;
+      const selectedMember = document.querySelector('input[name="member"]:checked');
+      
+      // 取得日期篩選值
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      
+      // 驗證是否已選擇區域和班員
+      if (!selectedArea || !selectedMember) {
+        showMessage(queryMessageDiv, '🚨 請選擇區域和班員。', 'red');
+        return;
+      }
+
+      // 增強驗證：如果填了結束日期，必須填起始日期
+      if (!startDate && endDate) {
+        showMessage(queryMessageDiv, '🚨 請填寫起始日期以完成日期篩選。', 'red');
+        return;
+      }
+      
+      // 增強驗證：檢查日期順序
+      if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+        showMessage(queryMessageDiv, '🚨 起始日期不能晚於結束日期。', 'red');
+        return;
+      }
+
+      // 清空結果並顯示讀取動畫
+      queryPlaceholder.classList.add('hidden');
+      queryLoader.classList.remove('hidden');
+      resultListDiv.innerHTML = '';
+      showMessage(queryMessageDiv, '🔄 正在查詢中...', 'orange');
+
+
+      // 設置查詢參數，現在包含日期範圍
+      const queryParams = {
+        area: selectedArea,
+        member: selectedMember.value,
+        startDate: startDate,
+        endDate: endDate
+      };
+
+      try {
+        const records = await apiRequest('query', queryParams);
+        displayQueryResults(records);
+      } catch (error) {
+        queryLoader.classList.add('hidden');
+        showMessage(queryMessageDiv, '❌ 查詢失敗，請稍後再試。', 'red');
+      }
+    }
+
+    // 處理後端返回的查詢結果
+    function displayQueryResults(records) {
+      queryLoader.classList.add('hidden'); // 隱藏讀取動畫
+      if (records && Array.isArray(records) && records.length > 0) {
+        showMessage(queryMessageDiv, `🔎 查詢到 ${records.length} 筆記錄。`, 'green');
+        let html = '';
+        // 遍歷結果，動態生成查詢結果的 HTML 列表
+        records.forEach(record => {
+          html += `
+            <div class="query-result-item bg-gray-50 rounded-lg p-3 my-2 shadow-sm">
+              <p><strong>填寫日期：</strong>${record.submitDate}</p>
+              <p><strong>填寫時間：</strong>${record.timestamp}</p>
+              <p><strong>救渡眾生數：</strong>${record.q1_suggest}</p>
+              <p><strong>成全幹部數：</strong>${record.q2_suggest}</p>
+              <p><strong>成全道親數：</strong>${record.q3_suggest}</p>
+              <p><strong>安設佛堂：</strong>${record.q4_suggest}</p>
+            </div>
+          `;
+        });
+        resultListDiv.innerHTML = html; // 插入結果列表
+      } else {
+        showMessage(queryMessageDiv, '⚠️ 未查詢到相關記錄。', 'orange');
+        queryPlaceholder.classList.remove('hidden');
+        queryPlaceholder.textContent = '如未查詢到請過三分鐘後再次查詢。';
+        resultListDiv.innerHTML = ''; // 確保結果列表為空
+      }
+    }
+
+    // --- 動態生成填寫表單內容 ---
+    const fillFormContent = `
+      <div id="fill-form-container">
+        <label for="submitDate">填寫日期：</label>
+        <input type="date" id="submitDate" name="submitDate">
+        <br><br>
+        <hr class="my-4">
+        <p class="text-gray-600 mb-4 text-center">請填寫以下項目：</p>
+        <div>
+          <label>1. 救渡了幾位眾生登岸？ (填寫數字)</label><br>
+          <textarea name="q1_suggest" id="q1_suggest" placeholder="請填寫數字，例如：3" rows="2"></textarea>
+        </div>
+        <div>
+          <label>2. 成全一位幹部上課進階 (填寫數字)</label><br>
+          <textarea name="q2_suggest" id="q2_suggest" placeholder="請填寫數字，例如：1" rows="2"></textarea>
+        </div>
+        <div>
+          <label>3. 成全一位道親上禮行班 (填寫數字)</label><br>
+          <textarea name="q3_suggest" id="q3_suggest" placeholder="請填寫數字，例如：5" rows="2"></textarea>
+        </div>
+        <div>
+          <label>4. 安設一間佛堂 (請輸入壇主姓名，若無則不用填寫)</label><br>
+          <textarea name="q4_suggest" id="q4_suggest" placeholder="請輸入壇主姓名，例如：王大明 / 若無則不用填寫" rows="2"></textarea>
+        </div>
+      </div>
+    `;
+
+    // 將表單內容注入到填寫區塊的最前面
+    fillFormSection.innerHTML = fillFormContent + fillFormSection.innerHTML;
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+const SHEET_ID = "1R3qdCIfyoDT3S7c8CWnq3eG9n5DM4HCvyAmAXBtgumk"; 
+const SHEET_MEMBERS_NAME = "名單";
+const SHEET_ATTENDANCE_NAME = "愿單記錄"; 
+const DEFAULT_TITLE = "重拾初心渡人接力"; 
+
+/**
+ * 處理 Web App 網頁請求。
+ */
+function doGet(e) {
+  // 如果沒有參數，返回基本訊息
+  if (!e || !e.parameter || !e.parameter.action) {
+    return HtmlService.createHtmlOutput("系統運行中。請透過 GitHub Pages 介面訪問。");
+  }
+
+  const action = e.parameter.action;
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  
+  try {
+    if (action === 'getInitialData') {
+      const memberSheet = ss.getSheetByName(SHEET_MEMBERS_NAME);
+      const areas = getUniqueAreas(memberSheet);
+      return createJsonResponse({
+        pageTitle: DEFAULT_TITLE,
+        areas: areas
+      });
+    }
+    
+    if (action === 'getMembers') {
+      const area = e.parameter.area;
+      return createJsonResponse(getMembersByArea(area));
+    }
+    
+    if (action === 'submit') {
+      // e.parameter 已經包含了 area, member, submitDate, q1_suggest 等
+      return createJsonResponse(submitAttendance(e.parameter));
+    }
+    
+    if (action === 'query') {
+      return createJsonResponse(queryAttendance(e.parameter));
+    }
+
+    return createJsonResponse({ error: "未知的操作指令" });
+  } catch (error) {
+    return createJsonResponse({ error: error.toString() });
+  }
+}
+
+/**
+ * 建立 JSON 回傳格式
+ */
+function createJsonResponse(data) {
+  const jsonString = JSON.stringify(data);
+  return ContentService.createTextOutput(jsonString)
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * 從指定工作表中取得所有不重複的區域。
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - 包含區域資料的工作表。
+ * @return {string[]} 不重複且排序過的區域名稱陣列。
+ */
+function getUniqueAreas(sheet) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  const areasColumn = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  const uniqueAreas = [...new Set(areasColumn.flat().filter(String))];
+  uniqueAreas.sort();
+  return uniqueAreas;
+}
+
+/**
+ * 根據區域名稱取得班員名單。
+ * @param {string} area - 區域名稱。
+ * @return {string[]} 該區域的班員名單陣列。
+ */
+function getMembersByArea(area) {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const memberSheet = ss.getSheetByName(SHEET_MEMBERS_NAME);
+  const data = memberSheet.getDataRange().getValues();
+  let members = [];
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === area && data[i][5] && data[i][5].toString().trim() !== "") {
+      members.push(data[i][5].toString().trim());
+    }
+  }
+  return members;
+}
+
+/**
+ * 處理並提交愿單表單資料到試算表。
+ * @param {Object} formData - 包含表單資料的物件。
+ * @return {string} 提交結果訊息。
+ */
+function submitAttendance(formData) {
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    let attendanceSheet = ss.getSheetByName(SHEET_ATTENDANCE_NAME);
+
+    const timestamp = new Date();
+    const area = formData.area || '';
+    const member = formData.member || '';
+    const submitDate = formData.submitDate || '';
+    const q1_suggest = formData.q1_suggest || '';
+    const q2_suggest = formData.q2_suggest || '';
+    const q3_suggest = formData.q3_suggest || '';
+    const q4_suggest = formData.q4_suggest || '';
+  
+    const row = [
+      timestamp,
+      area,
+      member,
+      submitDate,
+      q1_suggest,
+      q2_suggest,
+      q3_suggest,
+      q4_suggest
+    ];
+
+    attendanceSheet.appendRow(row);
+
+    return "提交成功！";
+  } catch (error) {
+    console.error("提交愿單時發生錯誤：" + error);
+    return "提交愿單時發生錯誤，請稍後再試。";
+  }
+}
+
+/**
+ * 根據查詢條件篩選愿單記錄。
+ * @param {Object} queryParams - 包含區域、班員和日期範圍的查詢物件。
+ * @return {Object[]} 符合條件的愿單記錄陣列。
+ */
+function queryAttendance(queryParams) {
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const attendanceSheet = ss.getSheetByName(SHEET_ATTENDANCE_NAME);
+    const data = attendanceSheet.getDataRange().getValues();
+
+    // 移除標題列
+    const records = data.slice(1);
+
+    const area = queryParams.area;
+    const member = queryParams.member;
+    const startDateStr = queryParams.startDate;
+    const endDateStr = queryParams.endDate;
+
+    const startDate = startDateStr ? new Date(startDateStr) : null;
+    const endDate = endDateStr ? new Date(endDateStr) : null;
+
+    const filteredData = records.filter(row => {
+      const rowArea = row[1];
+      const rowMember = row[2];
+      const rowDate = new Date(row[3]);
+
+      const isAreaMatch = area === rowArea;
+      const isMemberMatch = member === rowMember;
+      
+      // 日期比較需要處理時間誤差
+      let isDateMatch = true;
+      if (startDate) {
+        const s = new Date(startDate);
+        s.setHours(0,0,0,0);
+        const r = new Date(rowDate);
+        r.setHours(0,0,0,0);
+        if (r < s) isDateMatch = false;
+      }
+      if (endDate) {
+        const e = new Date(endDate);
+        e.setHours(23,59,59,999);
+        const r = new Date(rowDate);
+        r.setHours(0,0,0,0);
+        if (r > e) isDateMatch = false;
+      }
+
+      return isAreaMatch && isMemberMatch && isDateMatch;
+    });
+
+    const results = filteredData.map(row => ({
+      timestamp: Utilities.formatDate(row[0], Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss"),
+      area: row[1],
+      member: row[2],
+      submitDate: Utilities.formatDate(new Date(row[3]), Session.getScriptTimeZone(), "yyyy-MM-dd"),
+      q1_suggest: row[4],
+      q2_suggest: row[5],
+      q3_suggest: row[6],
+      q4_suggest: row[7],
+    }));
+
+    return results;
+  } catch (error) {
+    console.error("查詢愿單時發生錯誤：" + error);
+    return []; // 發生錯誤時返回空陣列
+  }
+}
